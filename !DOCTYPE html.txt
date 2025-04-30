@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>موقع تفاعلي</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      transition: background-color 0.5s, color 0.5s;
+    }
+
+    .dark-mode {
+      background-color: #121212;
+      color: white;
+    }
+
+    .light-mode {
+      background-color: #f5f5f5;
+      color: #000;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      transition: background-color 0.3s;
+      cursor: pointer;
+    }
+
+    .btn-game {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .btn-calc {
+      background-color: #2196f3;
+      color: white;
+    }
+
+    .btn-mode {
+      background-color: #ff9800;
+      color: white;
+    }
+
+    input[type="text"] {
+      width: 90%;
+      padding: 10px;
+      font-size: 18px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    .calculator button {
+      width: 50px;
+    }
+
+    #snakeGame {
+      display: none;
+      margin-top: 20px;
+    }
+
+    footer {
+      margin-top: 30px;
+      font-size: 14px;
+    }
+
+    a {
+      color: #00bfff;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body class="dark-mode">
+
+  <button class="btn-mode" onclick="toggleMode()">🌝🌚تبديل الوضع</button>
+  <button class="btn-calc" id="toggleBtn" onclick="toggleView()"> إلعب🐍🎮</button>
+
+  <div class="calculator">
+    <h2>☄آلة حاسبة🧠</h2>
+    <input type="text" id="display" readonly />
+    <br/>
+    <div>
+      <button onclick="clearDisplay()">C</button>
+      <button onclick="append('7')">7</button>
+      <button onclick="append('8')">8</button>
+      <button onclick="append('9')">9</button>
+      <button onclick="append('/')">/</button>
+    </div>
+    <div>
+      <button onclick="append('4')">4</button>
+      <button onclick="append('5')">5</button>
+      <button onclick="append('6')">6</button>
+      <button onclick="append('*')">*</button>
+    </div>
+    <div>
+      <button onclick="append('1')">1</button>
+      <button onclick="append('2')">2</button>
+      <button onclick="append('3')">3</button>
+      <button onclick="append('-')">-</button>
+    </div>
+    <div>
+      <button onclick="append('0')">0</button>
+      <button onclick="append('.')">.</button>
+      <button onclick="calculate()">=</button>
+      <button onclick="append('+')">+</button>
+    </div>
+  </div>
+
+  <div id="snakeGame">
+    <h2>🐍🐉</h2>
+    <canvas id="gameCanvas" width="300" height="300" style="background: black;"></canvas>
+    <div id="controls">
+      <button class="btn-game" onclick="setDirection('up')">⬆️</button><br>
+      <button class="btn-game" onclick="setDirection('left')">⬅️</button>
+      <button class="btn-game" onclick="setDirection('down')">⬇️</button>
+      <button class="btn-game" onclick="setDirection('right')">➡️</button>
+    </div>
+  </div>
+
+  <footer>
+    <p>لا تنسوأبدا إخواننا في فلسطين 🇵🇸</p>
+    <a href="mailto:chaamiabdelkader11@gmail.com">البريد الإلكتروني</a> |
+    <a href="https://instagram.com/ka_.dii" target="_blank">إنستغرام</a>
+    <p>تحت إشراف عبد القادر شعمي😇</p>
+  </footer>
+
+  <script>
+    // الوضع الليلي🌚/النهاري
+    function toggleMode() {
+      const body = document.body;
+      body.classList.toggle("dark-mode");
+      body.classList.toggle("light-mode");
+    }
+
+    //💻 الآلة الحاسبة
+    function append(char) {
+      document.getElementById('display').value += char;
+    }
+
+    function clearDisplay() {
+      document.getElementById('display').value = '';
+    }
+
+    function calculate() {
+      try {
+        document.getElementById('display').value = eval(document.getElementById('display').value);
+      } catch {
+        document.getElementById('display').value = '❌خطأ';
+      }
+    }
+
+    // التبديل بين الآلة ولعبة الثعبان
+    function toggleView() {
+      const calc = document.querySelector(".calculator");
+      const snake = document.getElementById("snakeGame");
+      const btn = document.getElementById("toggleBtn");
+
+      if (calc.style.display !== "none") {
+        calc.style.display = "none";
+        snake.style.display = "block";
+        btn.innerText = "رجوع💻";
+        startGame();
+      } else {
+        calc.style.display = "block";
+        snake.style.display = "none";
+        btn.innerText = "تبديل إلى لعبة الثعبان";
+      }
+    }
+
+    // لعبة الثعبان
+    let canvas, ctx, snake, food, dx, dy, gameInterval;
+
+    function startGame() {
+      clearInterval(gameInterval);
+      canvas = document.getElementById("gameCanvas");
+      ctx = canvas.getContext("2d");
+      snake = [{x: 150, y: 150}];
+      food = spawnFood();
+      dx = 10;
+      dy = 0;
+      document.removeEventListener("keydown", changeDirection);
+      document.addEventListener("keydown", changeDirection);
+      gameInterval = setInterval(update, 100);
+      const oldBtn = document.getElementById("restartBtn");
+      if (oldBtn) oldBtn.remove();
+    }
+
+    function update() {
+      const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+      snake.unshift(head);
+      if (head.x === food.x && head.y === food.y) {
+        food = spawnFood();
+      } else {
+        snake.pop();
+      }
+
+      if (head.x < 0 || head.x >= 300 || head.y < 0 || head.y >= 300 || checkCollision()) {
+        clearInterval(gameInterval);
+        showGameOver();
+        return;
+      }
+
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, 300, 300);
+      ctx.fillStyle = "lime";
+      snake.forEach(part => ctx.fillRect(part.x, part.y, 10, 10));
+      ctx.fillStyle = "red";
+      ctx.fillRect(food.x, food.y, 10, 10);
+    }
+
+    function changeDirection(e) {
+      if (e.key === "ArrowUp" && dy === 0) setDirection('up');
+      else if (e.key === "ArrowDown" && dy === 0) setDirection('down');
+      else if (e.key === "ArrowLeft" && dx === 0) setDirection('left');
+      else if (e.key === "ArrowRight" && dx === 0) setDirection('right');
+    }
+
+    function setDirection(dir) {
+      if (dir === 'up' && dy === 0) { dx = 0; dy = -10; }
+      else if (dir === 'down' && dy === 0) { dx = 0; dy = 10; }
+      else if (dir === 'left' && dx === 0) { dx = -10; dy = 0; }
+      else if (dir === 'right' && dx === 0) { dx = 10; dy = 0; }
+    }
+
+    function spawnFood() {
+      return {
+        x: Math.floor(Math.random() * 30) * 10,
+        y: Math.floor(Math.random() * 30) * 10
+      };
+    }
+
+    function checkCollision() {
+      for (let i = 1; i < snake.length; i++) {
+        if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function showGameOver() {
+      const controls = document.getElementById("controls");
+
+      // تحقق: هل الزر موجود؟
+      if (document.getElementById("restartBtn")) return;
+
+      const restartBtn = document.createElement("button");
+      restartBtn.innerText = "🔴إعادة المحاولة";
+      restartBtn.id = "restartBtn";
+      restartBtn.className = "btn-game";
+      restartBtn.onclick = () => {
+        restartBtn.remove();
+        startGame();
+      };
+
+      controls.appendChild(restartBtn);
+    }
+  </script>
+
+</body>
+  </html>اللهم صل وسلم على سيدنا محمد وعلى اله وصحبه وسلم تسليما 🤲🏻
